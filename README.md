@@ -1,1 +1,0 @@
-# skillhub-backend
