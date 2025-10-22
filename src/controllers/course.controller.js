@@ -1,5 +1,9 @@
-// src/controllers/course.controller.js
+import { Course } from "../models/course.model.js";
+import { Instructor } from "../models/instructors.model.js";
 import { getCourseDetails, enrollInCourse, searchCourses } from "../services/course.service.js";
+import mongoose from "mongoose";
+
+
 
 export const getCourse = async (req, res) => {
   try {
@@ -34,4 +38,57 @@ export const searchCourse = async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-};
+}
+
+// Create a new course
+export const createCourse = async (req, res) => {
+  try {
+    const {
+      title,
+      description,
+      price,
+      category,
+      level,
+      tags,
+      instructorId
+    } = req.body;
+
+    // Validate required fields
+    if (!title || !instructorId) {
+      return res.status(400).json({ message: "Title and instructorId are required" });
+    }
+
+    // Validate instructorId is a valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(instructorId)) {
+      return res.status(400).json({ message: "Invalid instructorId" });
+    }
+
+    // Check if instructor exists
+    const instructor = await Instructor.findById(instructorId);
+    if (!instructor) {
+      return res.status(404).json({ message: "Instructor not found" });
+    }
+
+    // Create course
+    const newCourse = new Course({
+      title,
+      description: description || "",
+      price: price || 0,
+      category: category || "General",
+      level: level || "beginner",
+      tags: tags || [],
+      instructorId: instructor._id,
+      instructorName: instructor.name
+    });
+
+    await newCourse.save();
+
+    res.status(201).json({
+      message: "Course created successfully",
+      course: newCourse
+    });
+  } catch (err) {
+    console.error("Create course error:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+}

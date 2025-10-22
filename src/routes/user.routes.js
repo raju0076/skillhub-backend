@@ -8,17 +8,17 @@ import {
 } from "../controllers/user.controller.js";
 import { authMiddleware } from "../middlewares/auth.middleware.js";
 
-const router = express.Router();
+const userRoutes = express.Router();
 
 // Public
-router.post("/register", registerUser);
-router.post("/login", loginUser);
+userRoutes.post("/register", registerUser);
+userRoutes.post("/login", loginUser);
 
 // Protected
-router.get("/profile", authMiddleware, getUserProfile);
-router.put("/profile", authMiddleware, updateUserProfile);
+userRoutes.get("/profile", authMiddleware, getUserProfile);
+userRoutes.put("/profile", authMiddleware, updateUserProfile);
 
 // Student Analytics
-router.get("/:userId/analytics", authMiddleware, getUserLearningAnalytics);
+userRoutes.get("/:userId/analytics", authMiddleware, getUserLearningAnalytics);
 
-export default router;
+export default userRoutes;

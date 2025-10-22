@@ -25,23 +25,18 @@ const userSchema = new Schema({
   badges: [{ type: String }],
   totalPoints: { type: Number, default: 0 },
 
-  // Track enrolled courses with progress
   enrolledCourses: [progressSchema],
 
-  // Device usage analytics
   deviceInfo: deviceInfoSchema,
 
-  // Last active timestamp for activity tracking
   lastActiveAt: { type: Date, default: Date.now, index: true },
 
-  // Optional: streak tracking for gamification
   streakDays: { type: Number, default: 0 }
 }, { timestamps: true });
 
-// Compound index for role-based queries and activity sorting
 userSchema.index({ role: 1, lastActiveAt: -1 });
 
-// Index to speed up queries on enrolled courses
 userSchema.index({ "enrolledCourses.courseId": 1 });
 
-export default mongoose.model("User", userSchema);
+export const User=mongoose.model("User",userSchema)
+

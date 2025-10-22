@@ -1,10 +1,11 @@
 import express from "express";
-import { authMiddleware } from "../middlewares/auth.middleware.js";
-import { getInstructorDashboard } from "../controllers/instructor.controller.js";
+import { authMiddleware, authorizeRoles } from "../middlewares/auth.middleware.js";
+import { createInstructorProfile, getInstructorDashboard } from "../controllers/instructor.controller.js";
 
-const router = express.Router();
+const InstructorRoutes = express.Router();
 
-// Protected: Only instructor/admin
-router.get("/:instructorId/dashboard", authMiddleware, getInstructorDashboard);
+InstructorRoutes.post("/create", authMiddleware, authorizeRoles("instructor"), createInstructorProfile);
 
-export default router;
+InstructorRoutes.get("/:instructorId/dashboard", authMiddleware, getInstructorDashboard);
+
+export default InstructorRoutes;

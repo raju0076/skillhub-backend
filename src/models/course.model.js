@@ -1,15 +1,14 @@
-// src/models/course.model.js
 import mongoose from "mongoose";
 const { Schema } = mongoose;
 
 const courseSchema = new Schema(
   {
     title: { type: String, required: true, text: true },
-    slug: { type: String, index: true }, // for SEO friendly routes
+    slug: { type: String, index: true }, 
     description: { type: String },
     thumbnail: { type: String },
     instructorId: { type: Schema.Types.ObjectId, ref: "Instructor", required: true, index: true },
-    instructorName: { type: String }, // small denorm to avoid lookup on hot path
+    instructorName: { type: String }, 
     price: { type: Number, default: 0 },
     currency: { type: String, default: "INR" },
     category: { type: String, index: true },
@@ -43,4 +42,4 @@ courseSchema.pre("save", function (next) {
   next();
 });
 
-export const Course = mongoose.models.Course || mongoose.model("Course", courseSchema);
+export const Course =  mongoose.model("Course", courseSchema);

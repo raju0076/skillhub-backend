@@ -9,7 +9,7 @@ const instructorSchema = new Schema(
     email: { type: String, required: true, index: true },
     bio: { type: String },
     profileImage: { type: String },
-    specialization: [{ type: String, index: true }], // e.g. ["Web Development", "AI"]
+    specialization: [{ type: String, index: true }],
     experienceYears: { type: Number, default: 0 },
     socialLinks: {
       linkedin: { type: String },
@@ -31,16 +31,13 @@ const instructorSchema = new Schema(
   { timestamps: true }
 );
 
-// 🔍 Useful indexes
 instructorSchema.index({ name: "text", specialization: 1 });
 instructorSchema.index({ isVerified: 1 });
 instructorSchema.index({ "stats.totalStudents": -1 });
 
-// 🧩 Hook: auto-update timestamps
 instructorSchema.pre("save", function (next) {
   this.updatedAt = new Date();
   next();
 });
 
-export const Instructor =
-  mongoose.models.Instructor || mongoose.model("Instructor", instructorSchema);
+export const Instructor = mongoose.model("Instructor", instructorSchema);

@@ -1,9 +1,8 @@
 import jwt from "jsonwebtoken";
-import User from "../models/user.model.js";
+import { User } from "../models/user.model.js";
 
 export const authMiddleware = async (req, res, next) => {
   try {
-    // Get token from headers
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({ message: "No token provided" });
@@ -11,13 +10,11 @@ export const authMiddleware = async (req, res, next) => {
 
     const token = authHeader.split(" ")[1];
 
-    // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     if (!decoded) {
       return res.status(401).json({ message: "Invalid token" });
     }
 
-    // Attach user info to request
     const user = await User.findById(decoded.userId).select("-passwordHash");
     if (!user) return res.status(401).json({ message: "User not found" });
 
@@ -33,4 +30,15 @@ export const authMiddleware = async (req, res, next) => {
     console.error("Auth middleware error:", err.message);
     res.status(401).json({ message: "Unauthorized" });
   }
+};
+
+
+// roles: ["student", "instructor", "admin"]
+export const authorizeRoles = (...roles) => {
+  return (req, res, next) => {
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ message: "Forbidden: Access denied" });
+    }
+    next();
+  };
 };

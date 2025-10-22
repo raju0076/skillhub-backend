@@ -1,22 +1,13 @@
-// src/utils/redis.js
-import Redis from "ioredis";
+import { createClient } from "redis";
 
-export const redisClient = new Redis({
-  host: "127.0.0.1", // Memurai host
-  port: 6379,        // Memurai default port
-  maxRetriesPerRequest: null, 
-  lazyConnect: true   // Connect when we want
+export const redisClient = createClient({
+  url: "redis://default:AKM5pU6SSo8DEKqPuvYWWpV5cF1I9b5V@redis-12489.crce179.ap-south-1-1.ec2.redns.redis-cloud.com:12489"
 });
 
-// Event listeners
-redisClient.on("connect", () => console.log("Redis connected"));
-redisClient.on("error", (err) => console.error("Redis error:", err.message));
+redisClient.on("error", (err) => console.log("Redis Client Error", err));
 
-// Optional: connect immediately
-(async () => {
-  try {
-    await redisClient.connect();
-  } catch (err) {
-    console.error("Failed to connect Redis:", err.message);
-  }
-})();
+await redisClient.connect();
+
+console.log(await redisClient.ping());
+
+

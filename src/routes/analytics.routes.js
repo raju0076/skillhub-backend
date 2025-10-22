@@ -1,10 +1,20 @@
 import express from "express";
-import { authMiddleware } from "../middlewares/auth.middleware.js";
-import { getPlatformAnalytics } from "../controllers/analytics.controller.js";
+import {
+  instructorAnalytics,
+  studentAnalytics,
+  platformOverview
+} from "../controllers/analytics.controller.js";
+import { authMiddleware, adminMiddleware } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
 
-// Admin only
-router.get("/platform", authMiddleware, getPlatformAnalytics);
+// ✅ Instructor performance analytics
+router.get("/instructor/:instructorId", authMiddleware, instructorAnalytics);
+
+// ✅ Student analytics
+router.get("/student/:userId", authMiddleware, studentAnalytics);
+
+// ✅ Platform overview (admin only)
+router.get("/platform/overview", adminMiddleware, platformOverview);
 
 export default router;

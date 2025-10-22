@@ -1,10 +1,10 @@
-import User from "../models/user.model.js"; // Your User schema
-import bcrypt from "bcryptjs";
+import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import Course from "../models/course.model.js"; // For analytics
 import mongoose from "mongoose";
+import { User } from "../models/user.model.js";
+import { Course } from "../models/course.model.js";
 
-// Helper: Generate JWT
+
 const generateToken = (user) => {
   return jwt.sign(
     { userId: user._id, role: user.role },
