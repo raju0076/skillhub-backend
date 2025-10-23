@@ -9,7 +9,9 @@ const instructorSchema = new Schema(
     email: { type: String, required: true, index: true },
     bio: { type: String },
     profileImage: { type: String },
-    specialization: [{ type: String, index: true }],
+
+   
+
     experienceYears: { type: Number, default: 0 },
     socialLinks: {
       linkedin: { type: String },
@@ -31,12 +33,15 @@ const instructorSchema = new Schema(
   { timestamps: true }
 );
 
-instructorSchema.index({ name: "text", specialization: 1 });
+// Indexes
 instructorSchema.index({ isVerified: 1 });
 instructorSchema.index({ "stats.totalStudents": -1 });
 
+// Optional: auto-update specializationText before saving
 instructorSchema.pre("save", function (next) {
-  this.updatedAt = new Date();
+  if (this.specialization && Array.isArray(this.specialization)) {
+    this.specializationText = this.specialization.join(", ");
+  }
   next();
 });
 

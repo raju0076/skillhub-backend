@@ -55,23 +55,12 @@ export const getInstructorDashboard = async (req, res) => {
 
 export const createInstructorProfile = async (req, res) => {
   try {
-    const {
-      userId,
-      name,
-      email,
-      bio,
-      profileImage,
-      specialization,
-      experienceYears,
-      socialLinks
-    } = req.body;
+    const {userId,name,email,bio,profileImage,experienceYears,socialLinks} = req.body;
 
-    // Validate userId
     if (!mongoose.Types.ObjectId.isValid(userId)) {
       return res.status(400).json({ message: "Invalid userId" });
     }
 
-    // Check if User exists
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -89,7 +78,6 @@ export const createInstructorProfile = async (req, res) => {
       email,
       bio,
       profileImage,
-      specialization,
       experienceYears,
       socialLinks
     });

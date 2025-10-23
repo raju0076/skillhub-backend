@@ -5,9 +5,7 @@ import { Review } from "../models/review.model.js";
 import { redisClient } from "../utils/redis.js";
 import mongoose from "mongoose";
 
-/**
- * Get course details with optimized aggregation + Redis caching
- */
+
 export const getCourseDetails = async (courseId, userId, limit = 10, cursor = null) => {
   const cacheKey = `course:${courseId}:user:${userId}:cursor:${cursor || "first"}`;
   const cached = await redisClient.get(cacheKey);
@@ -65,7 +63,6 @@ export const getCourseDetails = async (courseId, userId, limit = 10, cursor = nu
 };
 
 
-// src/services/course.service.js
 export const enrollInCourse = async (courseId, userId) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -105,7 +102,6 @@ export const enrollInCourse = async (courseId, userId) => {
 };
 
 
-// src/services/course.service.js
 export const searchCourses = async ({ q, category, rating, level, page = 1, limit = 20, sort = "popularity" }) => {
   const filter = {};
   if (q) filter.$text = { $search: q };

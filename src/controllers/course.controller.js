@@ -40,7 +40,6 @@ export const searchCourse = async (req, res) => {
   }
 }
 
-// Create a new course
 export const createCourse = async (req, res) => {
   try {
     const {
@@ -49,34 +48,28 @@ export const createCourse = async (req, res) => {
       price,
       category,
       level,
-      tags,
       instructorId
     } = req.body;
 
-    // Validate required fields
     if (!title || !instructorId) {
       return res.status(400).json({ message: "Title and instructorId are required" });
     }
 
-    // Validate instructorId is a valid ObjectId
     if (!mongoose.Types.ObjectId.isValid(instructorId)) {
       return res.status(400).json({ message: "Invalid instructorId" });
     }
 
-    // Check if instructor exists
     const instructor = await Instructor.findById(instructorId);
     if (!instructor) {
       return res.status(404).json({ message: "Instructor not found" });
     }
 
-    // Create course
     const newCourse = new Course({
       title,
       description: description || "",
       price: price || 0,
       category: category || "General",
       level: level || "beginner",
-      tags: tags || [],
       instructorId: instructor._id,
       instructorName: instructor.name
     });
