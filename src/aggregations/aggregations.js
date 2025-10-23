@@ -119,7 +119,6 @@ export async function getInstructorPerformance(instructorId) {
 
 export async function getStudentAnalytics(userId) {
   const uid = mongoose.Types.ObjectId(userId);
-  // 1) Pull enrollments for this user
   const enrolls = await Enrollment.find({ userId: uid }).lean();
 
   const totalCoursesEnrolled = enrolls.length;
@@ -129,7 +128,7 @@ export async function getStudentAnalytics(userId) {
   let coursesCompleted = 0, coursesInProgress = 0, coursesAbandoned = 0;
   let totalDaysToComplete = 0, completedCountForAvg = 0;
   let totalHoursLearned = 0;
-  let quizScores = []; // collect {tag, score}
+  let quizScores = []; 
 
   for (const e of enrolls) {
     if ((e.progressPercent || 0) >= 80) { coursesCompleted++; }
@@ -142,9 +141,7 @@ export async function getStudentAnalytics(userId) {
     }
     totalHoursLearned += (e.totalTimeSpentHours || 0);
 
-    // collect quiz scores with course tags
     if (e.quizScores && e.quizScores.length) {
-      // find course tags
       const course = await Course.findById(e.courseId).select("tags category level").lean();
       const avgScore = e.quizScores.reduce((a,b)=>a+b.score,0) / e.quizScores.length;
       quizScores.push({ courseId: e.courseId, tags: course?.tags || [], score: avgScore, category: course?.category, level: course?.level });
@@ -259,7 +256,6 @@ export async function getPlatformOverviewLast30Days() {
     ]).then(r=> r[0]?.total || 0)
   ]);
 
-  // Trends: enrollmentsByDay
   const enrollmentsByDay = await Enrollment.aggregate([
     { $match: { enrolledAt: { $gte: start } } },
     { $group: {
@@ -269,7 +265,6 @@ export async function getPlatformOverviewLast30Days() {
     { $sort: { "_id": 1 } }
   ]);
 
-  // completionRateByWeek (approx): group enrollments by week and check completed >=80
   const weekStart = new Date(now.getTime() - 90*24*60*60*1000); // last 90 days
   const completionRateByWeek = await Enrollment.aggregate([
     { $match: { enrolledAt: { $gte: weekStart } } },

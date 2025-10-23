@@ -2,9 +2,8 @@ import {
   getInstructorPerformance,
   getStudentAnalytics,
   getPlatformOverviewLast30Days
-} from "../analytics/aggregations.js"; // adjust path if analytics/ folder differs
+} from "../analytics/aggregations.js";
 
-// ✅ Instructor analytics
 export const instructorAnalytics = async (req, res) => {
   try {
     const { instructorId } = req.params;
@@ -15,7 +14,6 @@ export const instructorAnalytics = async (req, res) => {
   }
 };
 
-// ✅ Student analytics
 export const studentAnalytics = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -26,7 +24,6 @@ export const studentAnalytics = async (req, res) => {
   }
 };
 
-// ✅ Platform overview (last 30 days)
 export const platformOverview = async (req, res) => {
   try {
     const data = await getPlatformOverviewLast30Days();

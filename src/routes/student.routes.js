@@ -7,14 +7,14 @@ import {
   getStudentAnalytics
 } from "../controllers/student.controller.js";
 
-const router = express.Router();
+const studentRoutes = express.Router();
 
-router.get("/courses", authMiddleware, getEnrolledCourses);
+studentRoutes.get("/getEnrolledcourses", authMiddleware, getEnrolledCourses);
 
-router.post("/enroll/:courseId", authMiddleware, enrollInCourse);
+// studentRoutes.post("/enroll/:courseId", authMiddleware, enrollInCourse);
 
-router.patch("/courses/:courseId/progress", authMiddleware, updateCourseProgress);
+studentRoutes.patch("/courses/:courseId/progress", authMiddleware, updateCourseProgress);
 
-router.get("/analytics", authMiddleware, getStudentAnalytics);
+studentRoutes.get("/analytics", authMiddleware, getStudentAnalytics);
 
-export default router;
+export default studentRoutes;

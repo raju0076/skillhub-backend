@@ -1,18 +1,22 @@
 import { User } from "../models/user.model.js";
 import { Course } from "../models/course.model.js";
 import mongoose from "mongoose";
+import { Enrollment } from "../models/enrollment.model.js";
 
 export const getEnrolledCourses = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.userId;
 
-    const user = await User.findById(userId)
+    const enrollments = await Enrollment.find({ userId })
       .populate({
-        path: "enrolledCourses.courseId",
-        select: "title description instructor tags price"
-      });
+        path: "courseId",
+        select: "title description instructorName tags price level"
+      })
+      .lean();
 
-    res.json({ courses: user.enrolledCourses });
+    const courses = enrollments.map(e => e.courseId);
+
+    res.json({ courses });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Failed to fetch enrolled courses" });
@@ -54,7 +58,7 @@ export const enrollInCourse = async (req, res) => {
 
 export const updateCourseProgress = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.userId;
     const { courseId } = req.params;
     const { progress, completedLessons } = req.body;
 
@@ -75,15 +79,22 @@ export const updateCourseProgress = async (req, res) => {
   }
 };
 
+
 export const getStudentAnalytics = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.userId;
 
-    const user = await User.findById(userId).populate("enrolledCourses.courseId");
+    const enrollments = await Enrollment.find({ userId })
+      .populate({
+        path: "courseId",
+        select: "title"
+      })
+      .lean();
 
-    const totalCoursesEnrolled = user.enrolledCourses.length;
-    const coursesCompleted = user.enrolledCourses.filter(c => c.progress === 100).length;
-    const coursesInProgress = user.enrolledCourses.filter(c => c.progress > 0 && c.progress < 100).length;
+    const totalCoursesEnrolled = enrollments.length;
+
+    const coursesCompleted = enrollments.filter(e => e.progressPercent === 100).length;
+    const coursesInProgress = enrollments.filter(e => e.progressPercent > 0 && e.progressPercent < 100).length;
 
     res.json({
       studentId: userId,
