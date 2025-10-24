@@ -1,13 +1,12 @@
-// aggregations.js
 import mongoose from "mongoose";
-import { Course, Enrollment, Review, Instructor } from "./models"; // adjust paths
+import { Course } from "../models/course.model.js";
+import { Enrollment } from "../models/enrollment.model.js";
+import { User } from "../models/user.model.js";
 
 export async function getInstructorPerformance(instructorId) {
-  const instrOid = mongoose.Types.ObjectId(instructorId);
-  // 1) Pre-aggregate enrollments per course (fast, uses index on courseId)
+  const instrOid = new mongoose.Types.ObjectId(instructorId)
   const enrollAgg = await Enrollment.aggregate([
-    // match only courses belonging to instructor later via $lookup, but better: match by courseIds
-    { $match: { } }, // keep empty; below we will join by course
+    { $match: { } }, 
     { $group: {
         _id: "$courseId",
         totalEnrollments: { $sum: 1 },
@@ -29,17 +28,14 @@ export async function getInstructorPerformance(instructorId) {
     } },
   ]).allowDiskUse(false);
 
-  // Convert to map for quick lookup in Node (smallish: number of courses per instructor ~50)
   const enrollMap = new Map(enrollAgg.map(e => [String(e._id), e]));
 
-  // 2) Get courses of instructor and attach enroll data + review metrics via pipeline
   const courses = await Course.aggregate([
     { $match: { instructorId: instrOid } },
     { $project: {
         title: 1, price: 1, _id: 1,
         stats: 1
     }},
-    // Lookup computed reviews summary
     { $lookup: {
         from: "reviews",
         let: { courseId: "$_id" },
@@ -57,7 +53,6 @@ export async function getInstructorPerformance(instructorId) {
     { $project: { revSummary: 0 } }
   ]).allowDiskUse(false);
 
-  // 3) Compose final result in Node to avoid large $lookup/unwind cost
   let totalCourses = courses.length;
   let totalStudents = 0, totalRevenue = 0, ratingsSum = 0, ratingCount = 0;
   const courseBreakdown = courses.map(c => {
@@ -85,15 +80,12 @@ export async function getInstructorPerformance(instructorId) {
 
   const averageRating = ratingCount ? ratingsSum / ratingCount : 0;
 
-  // Student engagement across all courses for this instructor
   const activeStudents = Array.from(enrollMap.values()).reduce((acc, v) => acc + (v.activeLast30 || 0), 0);
   const inactiveStudents = totalStudents - activeStudents;
   const averageTimeSpent = courses.length ? (Array.from(enrollMap.values()).reduce((a,b)=>a+(b.avgTimeSpent||0),0)/courses.length) : 0;
 
-  // Trending: topPerforming by enrollments, fastestGrowing by enrollments in last 30 days
   courseBreakdown.sort((a,b)=>b.enrollments - a.enrollments);
   const topPerformingCourse = courseBreakdown[0]?.courseName || null;
-  // fastest growing requires enrollments by month — approximate by activeLast30
   courseBreakdown.sort((a,b)=>b.activeLast30 - a.activeLast30);
   const fastestGrowingCourse = courseBreakdown[0]?.courseName || null;
 
@@ -118,7 +110,7 @@ export async function getInstructorPerformance(instructorId) {
 
 
 export async function getStudentAnalytics(userId) {
-  const uid = mongoose.Types.ObjectId(userId);
+  const uid =new mongoose.Types.ObjectId(userId);
   const enrolls = await Enrollment.find({ userId: uid }).lean();
 
   const totalCoursesEnrolled = enrolls.length;
@@ -151,17 +143,14 @@ export async function getStudentAnalytics(userId) {
   const averageCompletionTime = completedCountForAvg ? (totalDaysToComplete / completedCountForAvg) : 0;
   const totalHours = totalHoursLearned;
 
-  // streakDays: naive approach using enrollments' lastAccessed & activity logs ideally needed
-  // For demo: compute consecutive days in last 30 days where lastAccessed exists
+ 
   const activityDates = new Set();
-  // If you maintain an Activity collection, use that. Here approximate:
   enrolls.forEach(e => {
     if (e.lastAccessed) {
-      const d = new Date(e.lastAccessed).toISOString().slice(0,10); // yyyy-mm-dd
+      const d = new Date(e.lastAccessed).toISOString().slice(0,10); 
       activityDates.add(d);
     }
   });
-  // compute longest consecutive streak in last 90 days
   const days = Array.from(activityDates).sort();
   let maxStreak = 0, cur = 0, prev = null;
   for (const d of days) {
@@ -172,10 +161,8 @@ export async function getStudentAnalytics(userId) {
     if (cur > maxStreak) maxStreak = cur;
   }
 
-  // performance metrics: average quiz score
   const avgQuiz = quizScores.length ? (quizScores.reduce((a,b)=>a+b.score,0) / quizScores.length) : 0;
 
-  // strong/weak categories by score
   const catScores = {};
   quizScores.forEach(q => {
     const cat = q.category || "uncategorized";
@@ -188,22 +175,17 @@ export async function getStudentAnalytics(userId) {
   const strongCategories = catAvg.slice(0,3).map(x=>x.category);
   const weakCategories = catAvg.slice(-3).map(x=>x.category);
 
-  // improvementRate: naive compare last half vs first half of quiz scores
-  // flatten scores by chronology if timestamps available; else approximate
-  const improvementRate = 0; // placeholder (needs timestamped quiz attempts)
+  const improvementRate = 0; 
 
-  // recommendations: simple tag-match score
   const completedTags = {};
   quizScores.forEach(q => q.tags.forEach(t => completedTags[t] = (completedTags[t]||0)+1));
   const tagList = Object.keys(completedTags);
-  // find courses that match these tags and user not enrolled
   const recCandidates = await Course.aggregate([
     { $match: { tags: { $in: tagList } } },
     { $project: { title:1, tags:1, price:1, stats:1 } },
     { $limit: 50 }
   ]);
 
-  // compute matchScore simple formula: (#matching tags * avgQuizScoreFactor * level factor)
   const recommendations = recCandidates.map(c => {
     const matchTags = c.tags.filter(t=>tagList.includes(t)).length;
     const matchScore = matchTags * (avgQuiz/100) * (1 + ((c.stats?.averageRating || 4)/5));
@@ -236,18 +218,12 @@ export async function getPlatformOverviewLast30Days() {
   const now = new Date();
   const start = new Date(now.getTime() - 30*24*60*60*1000);
 
-  // Overview counts
   const [ totalUsers, newUsers, totalCourses, totalEnrollments, totalRevenue ] = await Promise.all([
-    // total users
     User.countDocuments({}),
-    // new users last 30
     User.countDocuments({ createdAt: { $gte: start } }),
-    // total courses
     Course.countDocuments({}),
-    // enrollments last 30
     Enrollment.countDocuments({ enrolledAt: { $gte: start } }),
-    // revenue: if you have Payments collection; else compute approx via enrollments * course.price (expensive)
-    // For demo: compute revenue by joining enrollments->course (aggregation)
+    
     Enrollment.aggregate([
       { $match: { enrolledAt: { $gte: start } } },
       { $lookup: { from: "courses", localField: "courseId", foreignField: "_id", as: "course" } },
@@ -265,14 +241,12 @@ export async function getPlatformOverviewLast30Days() {
     { $sort: { "_id": 1 } }
   ]);
 
-  const weekStart = new Date(now.getTime() - 90*24*60*60*1000); // last 90 days
+  const weekStart = new Date(now.getTime() - 90*24*60*60*1000);
   const completionRateByWeek = await Enrollment.aggregate([
     { $match: { enrolledAt: { $gte: weekStart } } },
     { $project: { week: { $isoWeekYear: "$enrolledAt" }, isCompleted: { $cond: [{ $gte: ["$progressPercent", 80] }, 1, 0] } } },
-    // Using ISO week might need extra processing; simpler: group by week number computed in node
   ]);
 
-  // userBehavior: averageCoursesPerUser
   const avgCoursesPerUserAgg = await Enrollment.aggregate([
     { $group: { _id: "$userId", cnt: { $sum: 1 } } },
     { $group: { _id: null, avg: { $avg: "$cnt" } } }
@@ -280,7 +254,6 @@ export async function getPlatformOverviewLast30Days() {
 
   const averageCoursesPerUser = avgCoursesPerUserAgg[0]?.avg || 0;
 
-  // device breakdown from users.deviceInfo aggregate
   const deviceAgg = await User.aggregate([
     { $group: { _id: null, mobile: { $sum: "$deviceInfo.mobile" }, desktop: { $sum: "$deviceInfo.desktop" }, tablet: { $sum: "$deviceInfo.tablet" } } }
   ]);
@@ -294,7 +267,6 @@ export async function getPlatformOverviewLast30Days() {
     },
     trends: {
       enrollmentsByDay,
-      // revenueByDay we'd compute similarly
       completionRateByWeek
     },
     userBehavior: {

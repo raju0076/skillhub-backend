@@ -4,17 +4,14 @@ import {
   studentAnalytics,
   platformOverview
 } from "../controllers/analytics.controller.js";
-import { authMiddleware, adminMiddleware } from "../middlewares/auth.middleware.js";
+import { authMiddleware } from "../middlewares/auth.middleware.js";
 
-const router = express.Router();
+const analyticRoutes = express.Router();
 
-// ✅ Instructor performance analytics
-router.get("/instructor/:instructorId", authMiddleware, instructorAnalytics);
+analyticRoutes.get("/instructor/:instructorId", authMiddleware, instructorAnalytics);
 
-// ✅ Student analytics
-router.get("/student/:userId", authMiddleware, studentAnalytics);
+analyticRoutes.get("/student/:userId", authMiddleware, studentAnalytics);
 
-// ✅ Platform overview (admin only)
-router.get("/platform/overview", adminMiddleware, platformOverview);
+analyticRoutes.get("/platform/overview", authMiddleware, platformOverview);
 
-export default router;
+export default analyticRoutes;

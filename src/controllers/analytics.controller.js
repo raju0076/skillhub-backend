@@ -1,8 +1,4 @@
-import {
-  getInstructorPerformance,
-  getStudentAnalytics,
-  getPlatformOverviewLast30Days
-} from "../analytics/aggregations.js";
+import { getInstructorPerformance, getPlatformOverviewLast30Days, getStudentAnalytics } from "../aggregations/aggregations.js";
 
 export const instructorAnalytics = async (req, res) => {
   try {
@@ -11,6 +7,7 @@ export const instructorAnalytics = async (req, res) => {
     res.json({ success: true, data });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
+    console.log(err)
   }
 };
 
@@ -29,6 +26,7 @@ export const platformOverview = async (req, res) => {
     const data = await getPlatformOverviewLast30Days();
     res.json({ success: true, data });
   } catch (err) {
+    console.error("Platform overview error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 };

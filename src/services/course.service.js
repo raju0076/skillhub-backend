@@ -1,24 +1,20 @@
-// src/services/course.service.js
-import { Course } from "../models/course.model.js";
-import { Enrollment } from "../models/enrollment.model.js";
-import { Review } from "../models/review.model.js";
-import { redisClient } from "../utils/redis.js";
 import mongoose from "mongoose";
-
+import { Enrollment } from "../models/enrollment.model.js";
+import { Course } from "../models/course.model.js";
+import { redisClient } from "../utils/redis.js";
+import { Instructor } from "../models/instructors.model.js";
 
 export const getCourseDetails = async (courseId, userId, limit = 10, cursor = null) => {
   const cacheKey = `course:${courseId}:user:${userId}:cursor:${cursor || "first"}`;
   const cached = await redisClient.get(cacheKey);
   if (cached) return JSON.parse(cached);
 
-  // 1️⃣ Fetch course and instructor
   const course = await Course.findById(courseId)
     .select("-__v")
     .lean();
 
   if (!course) throw new Error("Course not found");
 
-  // 2️⃣ Get reviews with cursor-based pagination
   const reviewQuery = { courseId: mongoose.Types.ObjectId(courseId) };
   if (cursor) reviewQuery._id = { $gt: mongoose.Types.ObjectId(cursor) };
 
@@ -30,7 +26,6 @@ export const getCourseDetails = async (courseId, userId, limit = 10, cursor = nu
 
   const nextCursor = reviews.length === limit ? reviews[reviews.length - 1]._id : null;
 
-  // 3️⃣ Enrollment stats
   const totalEnrollments = await Enrollment.countDocuments({ courseId });
   const isEnrolled = userId ? await Enrollment.exists({ courseId, userId }) : false;
 
@@ -56,8 +51,7 @@ export const getCourseDetails = async (courseId, userId, limit = 10, cursor = nu
     userProgress: userProgressDoc?.progressPercent || null
   };
 
-  // 4️⃣ Cache response
-  await redisClient.setex(cacheKey, 60, JSON.stringify(response)); // cache 1 min
+  await redisClient.setex(cacheKey, 60, JSON.stringify(response)); 
 
   return response;
 };
@@ -68,29 +62,33 @@ export const enrollInCourse = async (courseId, userId) => {
   session.startTransaction();
 
   try {
-    // Prevent duplicate enrollment
     const existing = await Enrollment.findOne({ courseId, userId }).session(session);
     if (existing) {
-      await session.commitTransaction();
+      await session.commitTransaction(); 
       return { alreadyEnrolled: true };
     }
 
-    // Create enrollment
-    const enrollment = await Enrollment.create(
-      [{ courseId, userId }],
+
+    const [enrollment] = await Enrollment.create([{ courseId, userId }], { session });
+
+    const course = await Course.findByIdAndUpdate(
+      courseId,
+      { $inc: { "stats.totalEnrollments": 1 } },
+      { new: true, session }
+    );
+
+    if (!course) throw new Error("Course not found");
+
+    await Instructor.updateOne(
+      { _id: course.instructorId },
+      { $inc: { "stats.totalStudents": 1 } },
       { session }
     );
 
-    // Increment course.totalEnrollments & instructor.totalStudents
-    await Course.updateOne({ _id: courseId }, { $inc: { "stats.totalEnrollments": 1 } }).session(session);
-
-    const course = await Course.findById(courseId).session(session);
-    await Instructor.updateOne({ _id: course.instructorId }, { $inc: { "stats.totalStudents": 1 } }).session(session);
-
     await session.commitTransaction();
 
-    // Invalidate relevant caches
-    await redisClient.del(`course:${courseId}:*`);
+    const keys = await redisClient.keys(`course:${courseId}:*`);
+    if (keys.length > 0) await redisClient.del(keys);
 
     return { alreadyEnrolled: false, enrollment };
   } catch (error) {
@@ -100,7 +98,6 @@ export const enrollInCourse = async (courseId, userId) => {
     session.endSession();
   }
 };
-
 
 export const searchCourses = async ({ q, category, rating, level, page = 1, limit = 20, sort = "popularity" }) => {
   const filter = {};
