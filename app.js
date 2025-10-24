@@ -21,5 +21,7 @@ app.use("/api/v1/user", userRoutes);
 app.use("/api/v1/instructor", InstructorRoutes);
 app.use("/api/v1/students",studentRoutes)
 app.use("/api/v1/analytics",analyticRoutes)
+console.log("Course routes registered");
+
 
 export default app;

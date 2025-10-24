@@ -6,7 +6,7 @@ import { connectDB } from "./src/configs/mongo.config.js";
 
 
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 (async () => {
   await connectDB();
